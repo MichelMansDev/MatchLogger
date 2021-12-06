@@ -6,11 +6,12 @@
 
 ###### Variables ############
 
-$raspi__scoreboard_ip = "192.168.8.179"
-$raspi__shotclock_ip = "192.168.8.178"
-$polltime_secs = 1  # seconds
+$testing = $true      # normally: $false
+$raspi_scoreboard_ip = "192.168.8.179"
+$raspi_shotclock_ip = "192.168.8.178"
+$polltime_secs = 1    # seconds
+$request_timeout = 1  # seconds for the web request timeout
 $basedir = "C:\MatchLogger\"
-$testing = $true  # normally: $false
 
 ###### End Variables ########
 
@@ -19,7 +20,6 @@ $testing = $true  # normally: $false
 ##############################
 
 $current_date = Get-Date -format "yyyy-MM-dd"
-$current_time = Get-Date -format "HHmmss"
 $logdir = "$basedir\$current_date\"
 
 $logfilename = Get-Date -format "yyyy-MM-dd_HHmmss"
@@ -36,24 +36,17 @@ else {
 # Init                       #
 ##############################
 
-$headerline = @()
-$headerline += "Date"
-$headerline += "Time"
-$headerline += "ScoreStatus"
-$headerline += "HomeScore"
-$headerline += "GuestScore"
-$headerline += "ScoreChanged"
-
 $last_Home_Score = 0
 $last_Guest_Score = 0
+$initial_run = 1         # set for the sake of goal detection
 
 ##############################
 # Construct URL's            #
 ##############################
 
-$url_score = "http://$raspi__scoreboard_ip/scoreboard/score"
-$url_time = "http://$raspi__scoreboard_ip/timeclock/time"
-$url_shotclock = "http://$raspi__shotclock_ip/shotclock/time"
+$url_score = "http://$raspi_scoreboard_ip/scoreboard/score"
+$url_time = "http://$raspi_scoreboard_ip/timeclock/time"
+$url_shotclock = "http://$raspi_shotclock_ip/shotclock/time"
 
 ##############################
 # Main loop                  #
@@ -92,7 +85,7 @@ while ($true) {
         $answer_time = "{""status"": ""OK"", ""second"": 17, ""minute"": 15}"
     }
     else {
-        $answer_time = Invoke-WebRequest $url_time
+        $answer_time = Invoke-WebRequest $url_time -TimeoutSec $request_timeout
     }
     $result_time = ConvertFrom-Json $answer_time
 
@@ -119,7 +112,7 @@ while ($true) {
         $answer_score = "{""status"": ""OK"", ""home"": 18, ""guest"": 13}"
     }
     else {
-        $answer_score = Invoke-WebRequest $url_score
+        $answer_score = Invoke-WebRequest $url_score -TimeoutSec $request_timeout
     }
     $result_score = ConvertFrom-Json $answer_score
 
@@ -132,7 +125,7 @@ while ($true) {
         $logline.Add("score_guest", $result_score.Guest)
 
         # -or (($i % 3) -eq 2)
-        if (($last_Home_Score -ne $result_score.Home) -or ($last_Guest_Score -ne $result_score.Guest)) {
+        if ((($last_Home_Score -ne $result_score.Home) -or ($last_Guest_Score -ne $result_score.Guest)) -and -not $initial_run) {
             $score_changed = $true
             $score_changed_text = "Goal"
             $foreGroundColor = "Yellow"
@@ -167,7 +160,7 @@ while ($true) {
         $answer_shotclock = "{""status"": ""OK"", ""time"": 24}"
     }
     else {
-        #$answer_shotclock = Invoke-WebRequest $url_shotclock
+        $answer_shotclock = Invoke-WebRequest $url_shotclock -TimeoutSec $request_timeout
     }
     $result_shotclock = ConvertFrom-Json $answer_shotclock
 
@@ -210,6 +203,8 @@ while ($true) {
     $logline_object |Select date, time, clock_digits_left, clock_digits_right, score_home, score_guest, shotclock | Export-Csv -Path $logfile -Delimiter "|" -NoTypeInformation -NoClobber -Append
 
     #endregion Store values
+
+    $initial_run = 0
 
     sleep -Milliseconds ($polltime_secs * 1000)
 
