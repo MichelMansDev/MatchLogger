@@ -6,12 +6,12 @@
 
 ###### Variables ############
 
-$testing = $true      # normally: $false
-$raspi_scoreboard_ip = "192.168.8.179"
-$raspi_shotclock_ip = "192.168.8.178"
-$polltime_secs = 1    # seconds
-$request_timeout = 1  # seconds for the web request timeout
-$basedir = "C:\MatchLogger\"
+$testing = $false       # normally: $false
+$raspi_scoreboard_ip = "10.12.0.62"
+$raspi_shotclock_ip  = "10.12.0.61"
+$polltime_secs = 0.5    # seconds
+$request_timeout = 1    # seconds for the web request timeout
+$basedir = "C:\OneDrives\OneDrive - Prive\OneDrive\Fortuna\Loggers\Logs\"
 
 ###### End Variables ########
 
